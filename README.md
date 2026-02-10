@@ -1,11 +1,25 @@
-# OpenClaw QQ Plugin
+<div align="center">
 
-[中文文档](README_ZH.md)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/CreatorAris/CreatorAris/dist/github-snake-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/CreatorAris/CreatorAris/dist/github-snake.svg" />
+  <img alt="github contribution snake animation" src="https://raw.githubusercontent.com/CreatorAris/CreatorAris/dist/github-snake.svg" />
+</picture>
+
+# OpenClaw QQ Plugin
 
 QQ channel plugin for [OpenClaw](https://openclaw.ai) via [NapCat](https://github.com/NapNeko/NapCatQQ) (OneBot v11).
 
 [![npm version](https://img.shields.io/npm/v/@creatoraris/openclaw-qq.svg)](https://www.npmjs.com/package/@creatoraris/openclaw-qq)
+[![npm downloads](https://img.shields.io/npm/dm/@creatoraris/openclaw-qq.svg)](https://www.npmjs.com/package/@creatoraris/openclaw-qq)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org)
+[![GitHub stars](https://img.shields.io/github/stars/CreatorAris/openclaw-qq-plugin.svg)](https://github.com/CreatorAris/openclaw-qq-plugin/stargazers)
+[![GitHub last commit](https://img.shields.io/github/last-commit/CreatorAris/openclaw-qq-plugin.svg)](https://github.com/CreatorAris/openclaw-qq-plugin/commits)
+
+[中文文档](README_ZH.md)
+
+</div>
 
 ## Features
 
@@ -144,10 +158,3 @@ Common issues:
 
 MIT
 
----
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/CreatorAris/CreatorAris/dist/github-snake-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/CreatorAris/CreatorAris/dist/github-snake.svg" />
-  <img alt="github contribution snake animation" src="https://raw.githubusercontent.com/CreatorAris/CreatorAris/dist/github-snake.svg" />
-</picture>
