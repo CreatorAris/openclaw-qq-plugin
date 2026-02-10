@@ -1,6 +1,6 @@
 # OpenClaw QQ Plugin
 
-QQ 智能助手桥接插件，通过 NapCat (OneBot v11) 将 OpenClaw AI 接入 QQ。
+QQ 智能助手插件，通过 NapCat (OneBot v11) 将 OpenClaw AI 接入 QQ。
 
 [![npm version](https://img.shields.io/npm/v/@creatoraris/openclaw-qq.svg)](https://www.npmjs.com/package/@creatoraris/openclaw-qq)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,7 +14,7 @@ QQ 智能助手桥接插件，通过 NapCat (OneBot v11) 将 OpenClaw AI 接入 
 - 自动消息去重
 - 用户/群组白名单控制
 - 可选 HTTP 接口用于主动推送消息
-- 作为 OpenClaw 插件运行，随 Gateway 自动启停
+- 作为 OpenClaw 插件运行，随 OpenClaw Gateway 自动启停
 
 ## 前置条件
 
@@ -39,6 +39,8 @@ QQ 智能助手桥接插件，通过 NapCat (OneBot v11) 将 OpenClaw AI 接入 
 openclaw plugins install @creatoraris/openclaw-qq
 ```
 
+> **注意**：安装时可能出现安全警告 `Plugin contains dangerous code patterns: Environment variable access combined with network send`，这是因为插件需要读取配置并连接 NapCat WebSocket，属于正常行为，可以安全忽略。
+
 ### 步骤 3：配置插件
 
 编辑 `~/.openclaw/openclaw.json`，在 `plugins.entries` 中添加：
@@ -61,6 +63,8 @@ openclaw plugins install @creatoraris/openclaw-qq
   }
 }
 ```
+
+> **重要**：必须配置 `napcatWs` 后插件才会启用，否则日志会提示 `qq: missing napcatWs, plugin disabled`。
 
 ### 步骤 4：重启 OpenClaw
 
@@ -92,6 +96,8 @@ systemctl --user restart openclaw-gateway
 | `/reset` | 重置当前对话上下文 |
 | `/重置` | 同上（中文别名） |
 
+上下文被污染或需要开始新话题时，发送重置命令即可清除历史对话。
+
 ## 群聊使用
 
 1. 将 `allowedGroups` 配置为允许的群号列表
@@ -120,7 +126,7 @@ curl -X POST http://127.0.0.1:<port>/send \
 QQ 客户端 -> QQ 服务器 -> NapCat (OneBot v11) -> 本插件 (WebSocket) -> OpenClaw Gateway -> AI 模型
 ```
 
-本插件作为 OpenClaw 的内置服务运行，随 Gateway 自动启停，无需单独部署。
+本插件作为 OpenClaw 的内置服务运行，随 OpenClaw Gateway 自动启停，无需单独部署。
 
 ## 故障排查
 
@@ -132,6 +138,9 @@ journalctl --user -u openclaw-gateway -f
 
 常见问题：
 
+- **安装时出现安全警告**：`Plugin contains dangerous code patterns` 属于正常提示，插件需要网络访问来连接 NapCat，可安全忽略
+- **插件未启用 / `missing napcatWs`**：检查 `openclaw.json` 中是否正确配置了 `napcatWs` 参数
+- **收到重复回复**：同一个 NapCat 不能同时被多个客户端连接，检查是否存在重复进程。
 - **NapCat 连接失败**：确认 NapCat 正在运行且 WebSocket 地址和 token 正确
 - **群聊无回复**：确认群号在 `allowedGroups` 中，且消息中 @了机器人
 - **私聊无回复**：确认 QQ 号在 `allowedUsers` 中（或 `allowedUsers` 为空数组允许所有人）

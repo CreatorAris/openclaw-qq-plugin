@@ -1,7 +1,7 @@
 {
   "name": "@creatoraris/openclaw-qq",
-  "version": "0.1.0",
-  "description": "QQ channel plugin for OpenClaw via NapCat (OneBot v11) - QQ智能助手桥接",
+  "version": "0.1.1",
+  "description": "QQ channel plugin for OpenClaw via NapCat (OneBot v11)",
   "main": "index.js",
   "type": "module",
   "keywords": [
