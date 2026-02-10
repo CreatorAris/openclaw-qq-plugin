@@ -11,7 +11,6 @@
 QQ 智能助手插件，通过 NapCat (OneBot v11) 将 OpenClaw AI 接入 QQ。
 
 [![npm version](https://img.shields.io/npm/v/@creatoraris/openclaw-qq.svg)](https://www.npmjs.com/package/@creatoraris/openclaw-qq)
-[![npm downloads](https://img.shields.io/npm/dm/@creatoraris/openclaw-qq.svg)](https://www.npmjs.com/package/@creatoraris/openclaw-qq)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org)
 [![GitHub stars](https://img.shields.io/github/stars/CreatorAris/openclaw-qq-plugin.svg)](https://github.com/CreatorAris/openclaw-qq-plugin/stargazers)
