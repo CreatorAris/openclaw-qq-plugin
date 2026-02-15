@@ -11,7 +11,6 @@ const plugin = {
     const napcatToken = cfg.napcatToken || process.env.NAPCAT_TOKEN || '';
     const botQQ = String(cfg.botQQ || process.env.BOT_QQ || '');
     const allowedUsers = cfg.allowedUsers || [];
-    const allowedGroups = cfg.allowedGroups || [];
     const httpPort = Number(cfg.port || 0);
 
     if (!napcatWs) {
@@ -116,11 +115,6 @@ const plugin = {
       return result;
     }
 
-    function stripMention(text) {
-      // Remove CQ-style @mentions and plain @mentions of bot
-      return text.replace(/\[CQ:at,qq=\d+\]/g, '').replace(new RegExp(`@${botQQ}\\s*`, 'g'), '').trim();
-    }
-
     // ── Context reset ──
 
     async function resetSession(sessionId) {
@@ -222,41 +216,27 @@ const plugin = {
         if (isDuplicate(msgId)) return;
 
         const isGroup = data.message_type === 'group';
+
+        // Group messages are ignored for safety — the bot can send to groups
+        // via the HTTP /send endpoint, but never processes incoming group messages.
+        if (isGroup) return;
+
         const userId = String(data.user_id || '');
-        const groupId = String(data.group_id || '');
 
-        // Filter: skip bot's own messages in groups
-        if (isGroup && botQQ && userId === botQQ) return;
-
-        // Filter: check allowlists
-        if (isGroup) {
-          if (allowedGroups.length === 0) return;
-          if (!allowedGroups.includes(groupId)) return;
-        } else {
-          if (allowedUsers.length > 0 && !allowedUsers.includes(userId)) return;
-        }
-
-        // In groups, only respond when @mentioned
-        if (isGroup) {
-          const mentioned = Array.isArray(data.message) && data.message.some(
-            seg => seg.type === 'at' && String(seg.data?.qq) === botQQ
-          );
-          if (!mentioned) return;
-        }
+        // Filter: check allowlist for private chat
+        if (allowedUsers.length > 0 && !allowedUsers.includes(userId)) return;
 
         let text = await extractContent(data.message);
-        if (isGroup) text = stripMention(text);
         if (!text) return;
 
-        const source = isGroup ? `group:${groupId}:${userId}` : `user:${userId}`;
-        log.info(`[<- ${source}] ${text.slice(0, 100)}`);
+        log.info(`[<- user:${userId}] ${text.slice(0, 100)}`);
 
-        const sessionId = isGroup ? `qq_group_${groupId}` : `qq_${userId}`;
+        const sessionId = `qq_${userId}`;
 
         // Context reset
         if (RESET_COMMANDS.includes(text.trim().toLowerCase())) {
           const msg = await resetSession(sessionId);
-          sendToQQ(isGroup ? groupId : userId, msg, isGroup);
+          sendToQQ(userId, msg);
           return;
         }
 
@@ -264,11 +244,11 @@ const plugin = {
         try {
           const reply = await callOpenClaw(text, sessionId);
           if (reply) {
-            sendToQQ(isGroup ? groupId : userId, reply, isGroup);
+            sendToQQ(userId, reply);
           }
         } catch (err) {
           log.error(`[OpenClaw] error: ${err.message}`);
-          sendToQQ(isGroup ? groupId : userId, '服务暂时不可用，请稍后再试。', isGroup);
+          sendToQQ(userId, '服务暂时不可用，请稍后再试。');
         }
 
         cleanupImageCache();
@@ -352,7 +332,7 @@ const plugin = {
         log.info(`  OpenClaw:  ${openclawApi}`);
         log.info(`  Bot QQ:    ${botQQ || '(not set)'}`);
         log.info(`  Users:     ${allowedUsers.length > 0 ? allowedUsers.join(', ') : '(all)'}`);
-        log.info(`  Groups:    ${allowedGroups.length > 0 ? allowedGroups.join(', ') : '(disabled)'}`);
+        log.info(`  Groups:    send-only via /send endpoint`);
       },
 
       async stop() {
