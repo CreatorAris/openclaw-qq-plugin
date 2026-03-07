@@ -100,6 +100,65 @@ const plugin = {
       } catch {}
     }
 
+    // ── Voice file handling ──
+
+    async function resolveVoiceSource(src) {
+      if (src.startsWith('file://')) return new URL(src).pathname;
+      if (src.startsWith('/')) return src;
+
+      if (src.startsWith('http://') || src.startsWith('https://')) {
+        const response = await fetch(src);
+        if (!response.ok) return null;
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await fs.mkdir(MEDIA_CACHE_DIR, { recursive: true });
+        const tmpPath = path.join(MEDIA_CACHE_DIR, `voice-dl-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.silk`);
+        await fs.writeFile(tmpPath, buffer);
+        log.info(`[Voice] downloaded (${(buffer.byteLength / 1024).toFixed(1)}KB)`);
+        return tmpPath;
+      }
+
+      // NapCat may return bare filename like "xxx.amr"; search in QQ data dir
+      const found = await execAsync('find', [qqDataDir, '-name', src], { timeout: 5000 })
+        .then(r => r.stdout.trim().split('\n')[0])
+        .catch(() => '');
+      if (found) {
+        log.info(`[Voice] resolved bare filename to: ${found}`);
+        return found;
+      }
+
+      return null;
+    }
+
+    async function downloadVoice(src) {
+      try {
+        const localPath = await resolveVoiceSource(src);
+        if (!localPath) return null;
+
+        await fs.mkdir(MEDIA_CACHE_DIR, { recursive: true });
+        const stamp = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+        const silkPath = path.join(MEDIA_CACHE_DIR, `voice-${stamp}.silk`);
+        const wavPath = path.join(MEDIA_CACHE_DIR, `voice-${stamp}.wav`);
+
+        if (localPath !== silkPath) {
+          await fs.copyFile(localPath, silkPath);
+        }
+        log.info(`[Voice] silk file ready (${((await fs.stat(silkPath)).size / 1024).toFixed(1)}KB)`);
+
+        // Convert SILK to WAV using pilk (QQ voice is SILK_V3 format, not standard AMR)
+        try {
+          await execAsync('python3', ['-c', `import pilk; pilk.silk_to_wav("${silkPath}", "${wavPath}")`], { timeout: 15000 });
+          log.info(`[Voice] converted SILK to WAV`);
+          return wavPath;
+        } catch (convErr) {
+          log.warn(`[Voice] pilk convert failed, using raw file: ${convErr.message}`);
+          return silkPath;
+        }
+      } catch (err) {
+        log.error(`[Voice] download failed: ${err.message}`);
+        return null;
+      }
+    }
+
     // ── Extract message content ──
 
     async function extractContent(message) {
@@ -124,61 +183,15 @@ const plugin = {
           }
         } else if (seg.type === 'record' && voiceEnabled) {
           const src = seg.data?.file || seg.data?.url || seg.data?.path || '';
-          if (src) {
-            try {
-              await fs.mkdir(MEDIA_CACHE_DIR, { recursive: true });
-              const stamp = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
-              const silkPath = path.join(MEDIA_CACHE_DIR, `voice-${stamp}.silk`);
-              const wavPath = path.join(MEDIA_CACHE_DIR, `voice-${stamp}.wav`);
-
-              let localPath = null;
-              if (src.startsWith('file://')) {
-                localPath = new URL(src).pathname;
-              } else if (src.startsWith('/')) {
-                localPath = src;
-              } else if (src.startsWith('http://') || src.startsWith('https://')) {
-                const response = await fetch(src);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const buffer = Buffer.from(await response.arrayBuffer());
-                await fs.writeFile(silkPath, buffer);
-                localPath = silkPath;
-                log.info(`[Voice] downloaded (${(buffer.byteLength / 1024).toFixed(1)}KB)`);
-              } else {
-                // NapCat may return bare filename like "xxx.amr"; search in QQ data dir
-                const found = await execAsync('find', [qqDataDir, '-name', src], { timeout: 5000 })
-                  .then(r => r.stdout.trim().split('\n')[0])
-                  .catch(() => '');
-                if (found) {
-                  localPath = found;
-                  log.info(`[Voice] resolved bare filename to: ${found}`);
-                } else {
-                  throw new Error(`Cannot find voice file: ${src}`);
-                }
-              }
-
-              if (localPath && localPath !== silkPath) {
-                await fs.copyFile(localPath, silkPath);
-              }
-              const stat = await fs.stat(silkPath);
-              log.info(`[Voice] silk file ready (${(stat.size / 1024).toFixed(1)}KB)`);
-
-              // Convert SILK to WAV using pilk (QQ voice is SILK_V3 format, not standard AMR)
-              let finalPath = silkPath;
-              try {
-                await execAsync('python3', ['-c', `import pilk; pilk.silk_to_wav("${silkPath}", "${wavPath}")`], { timeout: 15000 });
-                finalPath = wavPath;
-                log.info(`[Voice] converted SILK to WAV`);
-              } catch (convErr) {
-                log.warn(`[Voice] pilk convert failed, using raw file: ${convErr.message}`);
-              }
-
-              mediaParts.push(`[用户发送了一条语音消息]\n本地路径: ${finalPath}\n请用语音识别工具将其转为文字，然后直接回复用户的问题。不要输出任何处理过程，直接回答用户说的内容。`);
-            } catch (err) {
-              log.error(`[Voice] failed: ${err.message}`);
-              mediaParts.push(`[用户发送了一条语音消息，处理失败: ${err.message}]`);
-            }
-          } else {
+          if (!src) {
             mediaParts.push(`[用户发送了一条语音消息，但未获取到文件路径]`);
+            continue;
+          }
+          const localPath = await downloadVoice(src);
+          if (localPath) {
+            mediaParts.push(`[用户发送了一条语音消息]\n本地路径: ${localPath}\n请用语音识别工具将其转为文字，然后直接回复用户的问题。不要输出任何处理过程，直接回答用户说的内容。`);
+          } else {
+            mediaParts.push(`[用户发送了一条语音消息，处理失败]`);
           }
         }
       }
