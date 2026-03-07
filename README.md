@@ -25,6 +25,8 @@ QQ channel plugin for [OpenClaw](https://openclaw.ai) via [NapCat](https://githu
 - Private chat and group chat support
 - Group chat triggered by @mention
 - Image message support (auto download for AI analysis)
+- **Voice message recognition** (SILK → WAV → STT, requires `python3` + `pilk`)
+- **Voice reply** (TTS → WAV → SILK, sends voice + text together)
 - Context reset (`/reset`)
 - Auto message deduplication
 - User/group allowlist
@@ -101,6 +103,37 @@ Send a private message to the bot on QQ. You should receive an AI reply.
 | `allowedUsers` | No | `[]` | Allowed QQ user IDs for private chat. Empty = allow all |
 | `allowedGroups` | No | `[]` | Allowed group IDs. Empty = groups disabled |
 | `port` | No | `0` | HTTP port for proactive `/send` endpoint. 0 = disabled |
+| `voice.enabled` | No | `true` | Enable voice message recognition |
+| `voice.ttsToolPath` | No | `""` | Path to TTS tool script for voice reply. Empty = voice reply disabled |
+| `voice.qqDataDir` | No | *(auto)* | QQ data directory for resolving voice filenames |
+| `voice.cacheDir` | No | *(auto)* | Voice cache dir (must be inside QQ sandbox on macOS) |
+
+## Voice Support
+
+### Prerequisites
+
+- `python3` with [`pilk`](https://pypi.org/project/pilk/) installed (`pip3 install pilk`)
+- For voice reply: a TTS tool script that accepts `node <script> tts "<text>" <output.wav>`
+
+### How It Works
+
+1. **Voice recognition**: When a user sends a voice message, QQ uses SILK_V3 format (not standard AMR). The plugin converts SILK → WAV via `pilk`, then passes the WAV file to OpenClaw for STT processing.
+2. **Voice reply**: When the user's message is voice, the AI reply is converted to speech (TTS → WAV → SILK) and sent back as a QQ voice message alongside a text message.
+
+### macOS Note
+
+On macOS, the voice cache directory **must** be inside QQ's container sandbox (`~/Library/Containers/com.tencent.qq/Data/tmp/`) to avoid `EPERM: operation not permitted` errors when NapCat copies the SILK file. The default path handles this automatically.
+
+### Configuration Example
+
+```json
+{
+  "voice": {
+    "enabled": true,
+    "ttsToolPath": "/path/to/your/tts-tool.js"
+  }
+}
+```
 
 ## Commands
 

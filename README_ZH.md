@@ -25,6 +25,8 @@ QQ 智能助手插件，通过 NapCat (OneBot v11) 将 OpenClaw AI 接入 QQ。
 - 支持私聊和群聊
 - 群聊中 @机器人 触发回复
 - 支持图片消息（自动下载并交给 AI 分析）
+- **语音消息识别**（SILK → WAV → 语音转文字，需要 `python3` + `pilk`）
+- **语音回复**（文字转语音 → WAV → SILK，同时发送语音和文字）
 - 支持上下文重置（发送 `/reset` 或 `/重置`）
 - 自动消息去重
 - 用户/群组白名单控制
@@ -101,6 +103,37 @@ systemctl --user restart openclaw-gateway
 | `allowedUsers` | 否 | `[]` | 允许私聊的 QQ 号列表，空数组 = 允许所有人 |
 | `allowedGroups` | 否 | `[]` | 允许群聊的群号列表，空数组 = 禁用群聊 |
 | `port` | 否 | `0` | HTTP 主动推送端口，0 = 禁用 |
+| `voice.enabled` | 否 | `true` | 启用语音消息识别 |
+| `voice.ttsToolPath` | 否 | `""` | TTS 工具脚本路径（用于语音回复），为空则禁用语音回复 |
+| `voice.qqDataDir` | 否 | *(自动)* | QQ 数据目录，用于查找语音文件 |
+| `voice.cacheDir` | 否 | *(自动)* | 语音缓存目录（macOS 上必须在 QQ 沙箱内） |
+
+## 语音支持
+
+### 前置依赖
+
+- `python3` 并安装 [`pilk`](https://pypi.org/project/pilk/) 库：`pip3 install pilk`
+- 语音回复需要：提供一个 TTS 工具脚本，接受 `node <script> tts "<文本>" <output.wav>` 格式调用
+
+### 工作原理
+
+1. **语音识别**：用户发送语音消息时，QQ 使用 SILK_V3 格式（非标准 AMR）。插件通过 `pilk` 将 SILK 转为 WAV，再交给 OpenClaw 做语音转文字。
+2. **语音回复**：当用户发送语音消息时，AI 的回复会同时以语音（TTS → WAV → SILK）和文字的形式发回。
+
+### macOS 注意事项
+
+在 macOS 上，语音缓存目录**必须**位于 QQ 的容器沙箱内（`~/Library/Containers/com.tencent.qq/Data/tmp/`），否则 NapCat 复制 SILK 文件时会报 `EPERM: operation not permitted` 错误。默认配置已自动处理。
+
+### 配置示例
+
+```json
+{
+  "voice": {
+    "enabled": true,
+    "ttsToolPath": "/path/to/your/tts-tool.js"
+  }
+}
+```
 
 ## 内置命令
 

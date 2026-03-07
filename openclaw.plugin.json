@@ -34,6 +34,29 @@
         "type": "number",
         "description": "HTTP port for proactive /send endpoint (0 = disabled)",
         "default": 0
+      },
+      "voice": {
+        "type": "object",
+        "description": "Voice message configuration",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable voice message recognition (SILK → WAV → STT). Requires python3 + pilk.",
+            "default": true
+          },
+          "ttsToolPath": {
+            "type": "string",
+            "description": "Path to TTS tool script (node script accepting: tts <text> <output.wav>). Required for voice reply."
+          },
+          "qqDataDir": {
+            "type": "string",
+            "description": "QQ data directory for resolving bare voice filenames. Defaults to macOS QQ container path."
+          },
+          "cacheDir": {
+            "type": "string",
+            "description": "Voice cache directory. Must be inside QQ's sandbox on macOS to avoid EPERM. Defaults to QQ container tmp dir."
+          }
+        }
       }
     }
   }
